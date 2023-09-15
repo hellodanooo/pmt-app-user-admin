@@ -6,41 +6,40 @@ import { useNavigation } from '@react-navigation/native'; // Import useNavigatio
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
+import { app } from '../../database/firebaseDb';
+
+
+import { getFirestore } from "firebase/firestore";
+
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore'; // Import Firestore functions
+
+
+
 type MainScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
 
 const RosterScreen = () => {
   const [roster, setRoster] = useState<RosterFighter[]>([]);
   const navigation = useNavigation<MainScreenNavigationProp>();
-  
+  const db = getFirestore(app);
+
   useEffect(() => {
-    fetchData('roster/getRoster', setRoster);
+    fetchData();
   }, []);
 
-  const fetchData = async (apiEndpoint: string, setData: React.Dispatch<any>) => {
-    try {
-      const response = await fetch(`https://pmt-admin-server-c0554bfe6b60.herokuapp.com/${apiEndpoint}`);
-      
+  const fetchData = async () => {
+    const rosterRef = collection(db, 'events', 'taVt1buUzGIT95axkgrh', 'roster');
+    const dataArray: RosterFighter[] = []; // Explicitly set the type here
 
-      if (response.status !== 200) {
-        console.error(`Roster Error: received status code ${response.status}`);
-        // TODO: Display an error to users
-        return;
-      }
-      
-      console.log("LOGCHECK ",response)
-      const dataObj = await response.json();
-      
-      if (typeof dataObj !== 'object' || dataObj === null) {
-        console.error("Expected an object from server");
-        // TODO: Display an error to users
-        return;
-      }
+    try {
+      const querySnapshot = await getDocs(rosterRef);
+      querySnapshot.forEach((doc) => {
+        dataArray.push(doc.data() as RosterFighter); // Cast to RosterFighter if needed
+      });
   
-      const dataArray = Object.keys(dataObj).map(key => dataObj[key]);
       console.log("Data received:", dataArray);
-      setData(dataArray);
+      setRoster(dataArray);
     } catch (error) {
-      console.error(`Error fetching ${apiEndpoint}:`, error);
+      console.error(`Error fetching data from Firestore:`, error);
       // TODO: Display an error to users
     }
   };
@@ -48,7 +47,7 @@ const RosterScreen = () => {
 
 
   // MAKE WEIGH IN BUTTON
-  const [responseMessage, setResponseMessage] = useState<string | null>(null);
+  /* const [responseMessage, setResponseMessage] = useState<string | null>(null);
   
   const makeWeighins = () => {
     console.log("makeWeighins Button Pushed"); // Logs when the button is clicked
@@ -80,7 +79,7 @@ const RosterScreen = () => {
   
   const goToWeighinsScreen = () => {
     navigation.navigate('Weighins'); // Navigate to WeighinsScreen
-  };
+  }; */
 
 
 

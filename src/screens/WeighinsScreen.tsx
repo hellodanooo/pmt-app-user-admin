@@ -50,6 +50,7 @@ const fetchData = async (apiEndpoint: string, setData: React.Dispatch<any>) => {
     const response = await fetch(`https://pmt-admin-server-c0554bfe6b60.herokuapp.com/${apiEndpoint}`);
     
 
+    
     if (response.status !== 200) {
       console.error(`Weghin Error: received status code ${response.status}`);
       // TODO: Display an error to users
