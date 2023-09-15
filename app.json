@@ -1,0 +1,11 @@
+{
+  "name": "client",
+  "displayName": "PMTApp",
+  "web": {
+    "build": {
+      "env": {
+        "GENERATE_SOURCEMAP": "false"
+      }
+    }
+  }
+}
