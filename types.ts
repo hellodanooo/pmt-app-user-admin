@@ -1,32 +1,20 @@
 // client/types.ts
 
 export interface RosterFighter {
-  id: string;
-  'FIRST': string;
-  'LAST': string;  
-  'GYM': string;
-  GENDER: string;
-  WEIGHTCLASS: number;
-  AGE: number;
-  RANK: number;
-  'DOB': string;
+  id: number;
+  first_name: string;
+  last_name: string;  
+  gym: string;
+  gender: string;
+  weight: number;
+  date_of_birth: string;
 }
 
-export interface WeighinFighter{
-  id: string;
-  WEIGHT: number;
-  'FIRST': string;
-  'LAST': string;  
-  'GYM': string;
-  GENDER: string;
-  'WEIGHTCLASS': number;
-  AGE: number;
-  'DOB': string;
-}
+
    
   export interface Bout {
-    Fighter1: WeighinFighter;
-    Fighter2: WeighinFighter;
+    Fighter1: RosterFighter;
+    Fighter2: RosterFighter;
   }
 
 export interface EventDetails {

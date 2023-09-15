@@ -1,163 +1,96 @@
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, FlatList, TextInput } from 'react-native';
-import {WeighinFighter} from '../../types';
+import { View, Text, FlatList, TextInput } from 'react-native';
+import {RosterFighter} from '../../types';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { app } from '../../database/firebaseDb';
+import { getFirestore } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc } from 'firebase/firestore';
 
 type MainScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
 
-const WeighinItem = ({ item, handleWeightUpdate }: { item: WeighinFighter, handleWeightUpdate: (newWeight: string, id: string) => void }) => {
-const [tempWeight, setTempWeight] = useState(item['WEIGHT'].toString());
+interface WeighinItemProps {
+  item: RosterFighter;
+  handleWeightUpdate: (newWeight: number, id: number) => void;
+}
 
+const WeighinItem: React.FC<WeighinItemProps> = ({item, handleWeightUpdate}) => {
+const [tempWeight, setTempWeight] = useState(item.weight ? item.weight.toString() : "");
 
   return (
     <View style={{ padding: 10, borderBottomWidth: 1 }}>
+      <Text>{`Name: ${item.first_name} | Gym: ${item.gym}`}</Text>
       <TextInput
-        value={tempWeight}
-        style={{ borderBottomWidth: 1, borderColor: '#d3d3d3', marginBottom: 5 }}
+        value={tempWeight} // it's already a string, so should be fine
+        placeholder="Update Weight"
         keyboardType="numeric"
         onChangeText={text => setTempWeight(text)}
         onEndEditing={(e) => {
-          handleWeightUpdate(e.nativeEvent.text, item.id);
-          setTempWeight(e.nativeEvent.text);
+          // convert back to number before sending
+          const newWeight = parseFloat(parseFloat(e.nativeEvent.text).toFixed(2));
+          handleWeightUpdate(newWeight, item.id);
         }}
       />
-      <Text>{`${item['FIRST']} ${item['LAST']} ${item['GYM']} ${item['WEIGHTCLASS']} ${item['AGE']}`}</Text>
     </View>
   );
-}
-
+};
 
 
 const WeighinScreen = () => {
-  const [weighins, setWeighins] = useState<WeighinFighter[]>([]);
-  const [responseMessage, setResponseMessage] = useState<string | null>(null);
+  const [weighins, setWeighins] = useState<RosterFighter[]>([]);
   const navigation = useNavigation<MainScreenNavigationProp>();
-
-
+  const db = getFirestore(app);
 
   useEffect(() => {
-    fetchData('weighins/display', setWeighins);
+    fetchData();
   }, []);
 
-  
-//////////////////// FUNCTION BELOW //////////////////
+  const fetchData = async () => {
+    const rosterRef = collection(db, 'events', 'taVt1buUzGIT95axkgrh', 'roster');
+    const dataArray: RosterFighter[] = [];
 
-const fetchData = async (apiEndpoint: string, setData: React.Dispatch<any>) => {
-  try {
-    const response = await fetch(`https://pmt-admin-server-c0554bfe6b60.herokuapp.com/${apiEndpoint}`);
-    
-
-    
-    if (response.status !== 200) {
-      console.error(`Weghin Error: received status code ${response.status}`);
-      // TODO: Display an error to users
-      return;
-    }
-    
-    console.log("LOGCHECK ",response)
-    const dataObj = await response.json();
-    
-    if (typeof dataObj !== 'object' || dataObj === null) {
-      console.error("Expected an object from server");
-      // TODO: Display an error to users
-      return;
-    }
-
-    const dataArray = Object.keys(dataObj).map(key => dataObj[key]);
-    console.log("Data received:", dataArray);
-    setData(dataArray);
-  } catch (error) {
-    console.error(`Error fetching ${apiEndpoint}:`, error);
-    // TODO: Display an error to users
-  }
-};
-
-  const makeWeighins = () => {
-    console.log("someshit Button Pushed"); // Logs when the button is clicked
-  
-    fetch('https://pmt-admin-server-c0554bfe6b60.herokuapp.com/weighins/makeMatches', {
-      method: 'POST',
-    })
-    .then(response => response.text()) // Directly reading text from the response
-    .then(text => {
-      // Log the raw response text
-      setResponseMessage(text); // text should be "Weigh-in data created successfully"
-      console.log("Raw response:", text); // Here, text should be "Weigh-in data created successfully"
-    // Make the message disappear after 3 seconds
-    setTimeout(() => {
-      setResponseMessage(null);
-    }, 3000);
-    })
-    .catch((error) => {
-      console.error('Error:', error); // Logs if an error occurs
-      setResponseMessage(`Error: ${error.message}`);
-
- // Make the error message disappear after 3 seconds as well
- setTimeout(() => {
-  setResponseMessage(null);
-}, 3000);
-
-    });
-  };
-  
-  const goToMatchScreen = () => {
-    navigation.navigate('Matches'); // Navigate to match screen
-  };
-
-  const handleWeightUpdate = async (newWeight: string, id: string) => {
     try {
-      const response = await fetch(`https://pmt-admin-server-c0554bfe6b60.herokuapp.com/weighins/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ WEIGHT: newWeight })
+      const querySnapshot = await getDocs(rosterRef);
+      querySnapshot.forEach((doc) => {
+        dataArray.push(doc.data() as RosterFighter);
       });
-  
-      if (response.status !== 200) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-  
-      const result = await response.json();
-      console.log(result.message);
-  
-      // Optionally, refetch weigh-ins data here or just update the state locally.
-  
+
+      setWeighins(dataArray); // Updated this line to set weighins, not roster
     } catch (error) {
+      console.error(`Error fetching data from Firestore:`, error);
+    }
+  };
+
+  const handleWeightUpdate = async (newWeight: number, id: number) => {
+    console.log("Update attempting");
+    console.log("ID:", id);  // Log the ID that you are using
+    console.log("New Weight:", newWeight);  // Log the new weight that you are trying to set
+    
+    try {
+      const docRef = doc(db, 'events', 'taVt1buUzGIT95axkgrh', 'roster', id.toString());
+
+      console.log("Document Reference:", docRef);  // Log the document reference
+  
+      const response = await updateDoc(docRef, { 'weight': newWeight });
+      console.log("Document updated");
+      console.log("Response:", response);  // Log the response from Firebase
+    } catch (error) {
+      console.log("Caught Error:", error);  // Log the caught error
       console.error("Error updating weight:", error);
     }
   };
-  //////////////////// FUNCTION ABOVE //////////////////
+  
 
-    <View style={{ flex: 1, paddingTop: 20 }}> 
-      {/* Padding just to ensure the message doesn't stick to the very top of the screen */}
-      
-      {responseMessage && <Text style={{ color: 'red', textAlign: 'center' }}>{responseMessage}</Text>}
-      {/* The color and textAlign styles are just examples; adjust based on your UI preferences */}
-      
-      <Button title="Make Weighins" onPress={makeWeighins} />
+  return (
+    <View style={{ flex: 1, paddingTop: 20 }}>
       <FlatList
         data={weighins}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         renderItem={({ item }) => <WeighinItem item={item} handleWeightUpdate={handleWeightUpdate} />}
       />
     </View>
-
-return (
-  <View style={{ flex: 1, paddingTop: 20 }}>
-    {responseMessage && <Text style={{ color: 'red', textAlign: 'center' }}>{responseMessage}</Text>}
-    <Button title="Make Weighins" onPress={makeWeighins} />
-    <FlatList
-      data={weighins}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => <WeighinItem item={item} handleWeightUpdate={handleWeightUpdate} />}
-    />
-  </View>
-);
-  
-}
+  );
+};
 
 export default WeighinScreen;
